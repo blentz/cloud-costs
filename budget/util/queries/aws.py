@@ -35,8 +35,10 @@ def get_dates(params):
 
     if 'date' in params:
         selected_date = datetime.strptime(params['date'], "%Y-%m-%d")
-    else:
+    elif dates:
         selected_date = max(dates)
+    else:
+        selected_date = datetime.now()
 
 #    # munge selected_date to avoid presenting "dd/mm/yyyy 00:00:00" in the UI
 #    if not isinstance(selected_date, str):

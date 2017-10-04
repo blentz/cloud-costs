@@ -78,8 +78,13 @@ def filename_to_date(filename):
     """ parses a json filename for individual component metadata.
     """
     rgx = re.compile(r'gcp-billing-(\d{4})-(\d{2})-(\d{2})\.json')
-    year, month, day = rgx.match(filename).groups()
-    return datetime(year=int(year), month=int(month), day=int(day))
+    match = rgx.match(filename)
+    if match:
+        year, month, day = match.groups()
+        return datetime(year=int(year), month=int(month), day=int(day))
+    else:
+        LOG.info("Regex match failed: %s" % filename)
+        return None
 
 def date_to_filename(filedate):
     """ uses a date to select a json filename.
@@ -179,6 +184,10 @@ def run(settings, options):
                 continue
 
             file_date = filename_to_date(filename)
+            if not file_date:
+                LOG.warn("Skipping %s", filename)
+                continue
+
             if file_date > last_insert:
                 insert_data(filename, cache_dir)
                 # don't insert the same data twice.

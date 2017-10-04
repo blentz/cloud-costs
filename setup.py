@@ -13,6 +13,7 @@ requires = [
     'cov-core',
     'fa.jquery',
     'gcloud',
+    'google-api-python-client',
     'moto',
     'mysql-python',
     'nose2',

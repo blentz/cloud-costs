@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from multiprocessing import Pool, cpu_count
 
 import boto3
+import botocore
 import transaction
 
 from sqlalchemy import engine_from_config
@@ -43,6 +44,9 @@ def update_instance_inventory(region, access_key, secret_key, account):
     try:
         ec2conn = get_ec2_client(region, access_key, secret_key)
         response = ec2conn.describe_instances()
+    except botocore.exceptions.ClientError as exc:
+        log.error("Error communicating with AWS: %s\n\n", exc.message)
+        return []
     except boto3.exceptions.Boto3Error as exc:
         log.error("Error communicating with AWS: %s\n\n", exc.message)
         return []
@@ -93,6 +97,9 @@ def update_reservation_inventory(region, access_key, secret_key, account):
     try:
         ec2conn = get_ec2_client(region, access_key, secret_key)
         response = ec2conn.describe_reserved_instances()
+    except botocore.exceptions.ClientError as exc:
+        log.error("Error communicating with AWS: %s\n\n", exc.message)
+        return []
     except boto3.exceptions.Boto3Error as exc:
         log.error("Error communicating with AWS: %s\n\n", exc.message)
         return []
@@ -257,4 +264,4 @@ if '__main__' in __name__:
     except KeyboardInterrupt:
         print "Ctrl+C detected. Exiting..."
         pool.terminate()
-        pool.join()
+        sys.exit()

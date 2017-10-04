@@ -80,78 +80,80 @@ def load_products():
     ''' insert product objects into DB '''
     ec2_pricing = load_json(cache_dir+"AmazonEC2.json")
 
-    objects = []
-    for product in ec2_pricing['products']:
-        if len(objects) > COMMIT_THRESHOLD:
-            log.debug("bulk saving...")
-            for obj in objects:
-                DBSession.merge(obj)
-            del objects[:]
+    with DBSession.no_autoflush:
+        objects = []
+        for product in ec2_pricing['products']:
+            if len(objects) > COMMIT_THRESHOLD:
+                log.debug("bulk saving...")
+                for obj in objects:
+                    DBSession.merge(obj)
+                del objects[:]
 
-        prod = ec2_pricing['products'][product]
-        prod_attr = prod['attributes']
+            prod = ec2_pricing['products'][product]
+            prod_attr = prod['attributes']
 
-        if 'productFamily' not in prod:
-            log.debug(prod)
-            continue
-        if prod['productFamily'] != 'Compute Instance':
-            log.debug(prod['productFamily'])
-            continue
+            if 'productFamily' not in prod:
+                log.debug(prod)
+                continue
+            if prod['productFamily'] != 'Compute Instance':
+                log.debug(prod['productFamily'])
+                continue
 
-        kwargs = {'location':prod_attr['location'],
-                  'instance_type':prod_attr['instanceType'],
-                  'tenancy':prod_attr['tenancy'],
-                  'usage_type':prod_attr['usagetype'],
-                  'operation':prod_attr['operation'],
-                  'operating_system':prod_attr['operatingSystem'],
-                  'json':json.dumps(prod)}
-        if 'currentGeneration' in prod_attr and \
-                prod_attr['currentGeneration'] == 'Yes':
-            kwargs['current_generation'] = True
-        else:
-            kwargs['current_generation'] = False
-        obj = insert_or_update(DBSession,
-                               AwsProduct,
-                               defaults={'sku':prod['sku']},
-                               **kwargs)
-        objects.append(obj)
-    log.debug("saving...")
-    for obj in objects:
-        DBSession.merge(obj)
-    transaction.commit()
+            kwargs = {'location':prod_attr['location'],
+                      'instance_type':prod_attr['instanceType'],
+                      'tenancy':prod_attr['tenancy'],
+                      'usage_type':prod_attr['usagetype'],
+                      'operation':prod_attr['operation'],
+                      'operating_system':prod_attr['operatingSystem'],
+                      'json':json.dumps(prod)}
+            if 'currentGeneration' in prod_attr and \
+                    prod_attr['currentGeneration'] == 'Yes':
+                kwargs['current_generation'] = True
+            else:
+                kwargs['current_generation'] = False
+            obj = insert_or_update(DBSession,
+                                   AwsProduct,
+                                   defaults={'sku':prod['sku']},
+                                   **kwargs)
+            objects.append(obj)
+        log.debug("saving...")
+        for obj in objects:
+            DBSession.merge(obj)
+        transaction.commit()
 
 def load_prices():
     ''' insert pricing objects into DB '''
     ec2_pricing = load_json(cache_dir+"AmazonEC2.json")
 
-    objects = []
-    for pricing in ec2_pricing['terms']:
-        for sku in ec2_pricing['terms'][pricing]:
-            for term in ec2_pricing['terms'][pricing][sku]:
-                if len(objects) > COMMIT_THRESHOLD:
-                    log.debug("bulk saving...")
-                    for obj in objects:
-                        DBSession.merge(obj)
-                    del objects[:]
+    with DBSession.no_autoflush:
+        objects = []
+        for pricing in ec2_pricing['terms']:
+            for sku in ec2_pricing['terms'][pricing]:
+                for term in ec2_pricing['terms'][pricing][sku]:
+                    if len(objects) > COMMIT_THRESHOLD:
+                        log.debug("bulk saving...")
+                        for obj in objects:
+                            DBSession.merge(obj)
+                        del objects[:]
 
-                terms = ec2_pricing['terms'][pricing][sku][term]
+                    terms = ec2_pricing['terms'][pricing][sku][term]
 
-                price_dimensions = terms['priceDimensions']
-                term_attributes = terms['termAttributes']
-                kwargs = {'offer_term_code':terms['offerTermCode'],
-                          'price_dimensions':json.dumps(price_dimensions),
-                          'term_attributes':json.dumps(term_attributes),
-                          'json':json.dumps(term)}
-                obj = insert_or_update(DBSession,
-                                       AwsPrice,
-                                       defaults={'sku':terms['sku']},
-                                       **kwargs)
-                objects.append(obj)
+                    price_dimensions = terms['priceDimensions']
+                    term_attributes = terms['termAttributes']
+                    kwargs = {'offer_term_code':terms['offerTermCode'],
+                              'price_dimensions':json.dumps(price_dimensions),
+                              'term_attributes':json.dumps(term_attributes),
+                              'json':json.dumps(term)}
+                    obj = insert_or_update(DBSession,
+                                           AwsPrice,
+                                           defaults={'sku':terms['sku']},
+                                           **kwargs)
+                    objects.append(obj)
 
-    log.debug("saving...")
-    for obj in objects:
-        DBSession.merge(obj)
-    transaction.commit()
+        log.debug("saving...")
+        for obj in objects:
+            DBSession.merge(obj)
+        transaction.commit()
 
 def main():
     ''' main entry point '''

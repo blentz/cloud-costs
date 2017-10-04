@@ -451,7 +451,8 @@ def gcp_cost(request):
             graph_data[project].add(data)
 
     # remove spurious key.
-    del graph_data['None']
+    if 'None' in graph_data:
+        del graph_data['None']
 
     # ensure that the length of the coordinate value arrays are all the same.
     for key, val in graph_data.items():
